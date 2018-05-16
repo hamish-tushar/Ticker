@@ -17,6 +17,7 @@ namespace Ticker
         private int LotSize => int.Parse(ConfigurationManager.AppSettings["LotSize"]);
         private int CallThreshold => int.Parse(ConfigurationManager.AppSettings["CallThreshold"]);
         private int PutThreshold => int.Parse(ConfigurationManager.AppSettings["PutThreshold"]);
+        private int VolumeThreshold => int.Parse(ConfigurationManager.AppSettings["VolumeThreshold"]);
         private readonly HttpClient client;
 
         public Stocks()
@@ -77,9 +78,9 @@ namespace Ticker
                         var sell = options.optionChain.result[0].options[0].calls[i];
                         var buy = options.optionChain.result[0].options[0].calls[i + 1];
                         if (IsCallOptionWorthIt(options.optionChain.result[0].quote.regularMarketPrice, sell, buy,
-                            out var sellStrikePrice, out var buytrikePrice, out var takeInMoney))
+                            out var sellStrikePrice, out var buyStrikePrice, out var takeInMoney))
                         {
-                            Console.WriteLine($"Stock {options.optionChain.result[0].underlyingSymbol} {options.optionChain.result[0].quote.regularMarketPrice} has potential for ${takeInMoney} strike Price Calls {sellStrikePrice}/{buytrikePrice} and Expiry {DateTimeOffset.FromUnixTimeSeconds(sell.expiration).LocalDateTime} ");
+                            Console.WriteLine($"Stock {options.optionChain.result[0].underlyingSymbol} {options.optionChain.result[0].quote.regularMarketPrice} has potential for ${takeInMoney} strike Price Calls {sellStrikePrice}/{buyStrikePrice} and Expiry {DateTimeOffset.FromUnixTimeSeconds(sell.expiration).LocalDateTime} ");
                         }
                     }
 
@@ -88,9 +89,9 @@ namespace Ticker
                     var buy = options.optionChain.result[0].options[0].puts[i];
                     var sell = options.optionChain.result[0].options[0].puts[i + 1];
                     if (IsPutOptionWorthIt(options.optionChain.result[0].quote.regularMarketPrice, buy, sell,
-                        out var sellStrikePrice, out var buytrikePrice, out var takeInMoney))
+                        out var sellStrikePrice, out var buyStrikePrice, out var takeInMoney))
                     {
-                        Console.WriteLine($"Stock {options.optionChain.result[0].underlyingSymbol} {options.optionChain.result[0].quote.regularMarketPrice} has potential for ${takeInMoney} strike Price Puts {buytrikePrice}/{sellStrikePrice} and Expiry {DateTimeOffset.FromUnixTimeSeconds(sell.expiration).LocalDateTime} ");
+                        Console.WriteLine($"Stock {options.optionChain.result[0].underlyingSymbol} {options.optionChain.result[0].quote.regularMarketPrice} has potential for ${takeInMoney} strike Price Puts {buyStrikePrice}/{sellStrikePrice} and Expiry {DateTimeOffset.FromUnixTimeSeconds(sell.expiration).LocalDateTime} ");
                     }
                 }
 
@@ -108,22 +109,30 @@ namespace Ticker
             {
                 return false;
             }
-
+            if (IsVolumeLow(sell, buy))
+            {
+                return false;
+            }
             if (sell.strike > currentPrice * RiskValue)
             {
-                var midSell = (sell.bid + sell.ask) / 2;
-                var midBuy = (buy.bid + buy.ask) / 2;
-                if ((midSell - midBuy) * 100 * LotSize > CallThreshold)
+                var sellPrice = sell.bid;
+                var buyPrice = buy.ask;
+                var price = (sellPrice - buyPrice) / 2;
+                if (price * 100 * LotSize > CallThreshold)
                 {
                     sellStrikePrice = sell.strike;
                     buyStrikePrice = buy.strike;
-                    takeInMoney = (midSell - midBuy) *100 * LotSize;
+                    takeInMoney = price * 100 * LotSize;
                     return true;
                 }
             }
             return false;
         }
 
+        private bool IsVolumeLow(dynamic sell, dynamic buy)
+        {
+            return sell.volume < VolumeThreshold || buy.volume < VolumeThreshold;
+        }
 
         public bool IsPutOptionWorthIt(double currentPrice, Put buy, Put sell, out float sellStrikePrice, out float buyStrikePrice, out double takeInMoney)
         {
@@ -135,15 +144,21 @@ namespace Ticker
                 return false;
             }
 
+            if (IsVolumeLow(sell, buy))
+            {
+                return false;
+            }
+
             if (sell.strike < currentPrice / RiskValue)
             {
-                var midSell = (sell.bid + sell.ask) / 2;
-                var midBuy = (buy.bid + buy.ask) / 2;
-                if ((midSell - midBuy) * 100 * LotSize > PutThreshold)
+                var sellPrice = sell.bid;
+                var buyPrice = buy.ask;
+                var price = (sellPrice - buyPrice) / 2;
+                if (price * 100 * LotSize > PutThreshold)
                 {
                     sellStrikePrice = sell.strike;
                     buyStrikePrice = buy.strike;
-                    takeInMoney = (midSell - midBuy) * 100 * LotSize;
+                    takeInMoney = price * 100 * LotSize;
                     return true;
                 }
             }
