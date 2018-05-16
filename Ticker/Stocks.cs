@@ -24,14 +24,17 @@ namespace Ticker
             client = new HttpClient();
         }
 
-
+        /// <summary>
+        /// Even though it says third friday, yahoo API works with date expiry for Fri 12:00 am UTC
+        /// Translates to Thursday 5pm PST
+        /// </summary>
+        /// <param name="dateTime"></param>
+        /// <param name="futureMonth"></param>
+        /// <returns></returns>
         public long GetExpiryForThirdFriday(DateTime dateTime, int futureMonth = 1)
         {
             var now = DateTime.Now;
-            var dateForExpiry = new DateTime(now.Year, now.Month + 2, 20, 12, 0, 0);
-            var time = new DateTimeOffset(dateForExpiry);
             var expiryYear = now.Year;
-
             switch (futureMonth)
             {
                 case 1:
