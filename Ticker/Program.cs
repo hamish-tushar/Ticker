@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using CommandLine;
@@ -14,8 +15,11 @@ namespace Ticker
         static void Main(string[] args)
         {
             MainAsync(args).Wait();
-            Console.WriteLine("Press Any Key to Quit");
-            Console.ReadKey();
+            if (Debugger.IsAttached)
+            {
+                Console.WriteLine("Press Any Key to Quit");
+                Console.ReadKey();
+            }
         }
 
         static async Task MainAsync(string[] args)
@@ -30,14 +34,14 @@ namespace Ticker
                 {
                     Console.WriteLine(error.ToString());
                 }
-                //if (errors.Any(e => e.StopsProcessing))
-                //{
-                //    return;
-                //}
                 return;
             }
 
-
+            if (arguments.Debug)
+            {
+                Debugger.Launch();
+            }
+            
             var stocks = new Stocks();
             var time = stocks.GetExpiryForThirdFriday(DateTime.Now, 2);
             foreach (var symbol in stocks.Symbols)
@@ -56,6 +60,9 @@ namespace Ticker
 
     public class Arguments
     {
+        [Option('d', "debug", Required = false, HelpText = "Debug application")]
+        public bool Debug { get; set; }
+
         [Option('s', "symbol", Required = false, HelpText = "Optional list of symbols override")]
         public string Symbol{ get; set; }
 
@@ -68,5 +75,7 @@ namespace Ticker
         [Option('p', "profit", Required = false, HelpText = "Profit threshold")]
         public int? Profit { get; set; }
 
+        [Option('m', "margin", Required = false, HelpText = "Maximum margin")]
+        public decimal? Margin { get; set; }
     }
 }

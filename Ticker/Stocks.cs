@@ -18,6 +18,8 @@ namespace Ticker
         private int CallThreshold => Program.arguments.Profit ?? int.Parse(ConfigurationManager.AppSettings["CallThreshold"]);
         private int PutThreshold => Program.arguments.Profit ?? int.Parse(ConfigurationManager.AppSettings["PutThreshold"]);
         private int VolumeThreshold => int.Parse(ConfigurationManager.AppSettings["VolumeThreshold"]);
+        private decimal MaxMargin => Program.arguments.Margin ?? decimal.Parse(ConfigurationManager.AppSettings["MaxMargin"]);
+
         private readonly HttpClient client;
 
         public Stocks()
@@ -80,10 +82,14 @@ namespace Ticker
                 var result = options.optionChain.result[0];
 
                 var calls = result.options[0].calls;
-                for (int i = 0; i < calls.Length - 1; i += 2)
+                for (int i = 0; i < calls.Length - 1; i ++)
                 {
                     var sell = calls[i];
-                    var buy = calls[i + 1];
+                    if (sell.inTheMoney)
+                    {
+                        continue;
+                    }
+                    var buy = FindBuyOption(calls, i);
 
                     if (IsCallOptionWorthIt(result.quote.regularMarketPrice, sell, buy, out var sellStrikePrice, out var buyStrikePrice, out var takeInMoney))
                     {
@@ -94,10 +100,16 @@ namespace Ticker
 
 
                 var puts = result.options[0].puts;
-                for (int i = 0; i < puts.Length - 1; i += 2)
+                for (int i = puts.Length - 1; i > 0; i--)
                 {
-                    var buy = puts[i];
-                    var sell = puts[i + 1];
+                    var sell = puts[i];
+                    if (sell.inTheMoney)
+                    {
+                        continue;
+                    }
+
+                    var buy = FindBuyOption(puts, i);
+                    
                     if (IsPutOptionWorthIt(result.quote.regularMarketPrice, buy, sell, out var sellStrikePrice, out var buyStrikePrice, out var takeInMoney))
                     {
                         Console.WriteLine(
@@ -109,6 +121,39 @@ namespace Ticker
             return null;
         }
 
+        private Call FindBuyOption(Call[] calls, int i)
+        {
+            var current = calls[i];
+            int callIndex = i + 1;
+            for (int j = i + 1; j < calls.Length; j++)
+            {
+                var call = calls[j];
+                var marginRequired = (call.strike - current.strike) * LotSize * 100;
+                if (marginRequired > MaxMargin)
+                {
+                    break;
+                }
+                callIndex = j;
+            }
+            return calls[callIndex];
+        }
+
+        private Put FindBuyOption(Put[] puts, int i)
+        {
+            var current = puts[i];
+            int putIndex = i -1;
+            for (int j = i - 1; j > 0; j--)
+            {
+                var put = puts[j];
+                var marginRequired = (current.strike - put.strike) * LotSize * 100;
+                if (marginRequired > MaxMargin)
+                {
+                    break;
+                }
+                putIndex = j;
+            }
+            return puts[putIndex];
+        }
 
         public bool IsCallOptionWorthIt(decimal currentPrice, Call sell, Call buy, out decimal sellStrikePrice, out decimal buyStrikePrice, out decimal takeInMoney)
         {
@@ -127,7 +172,7 @@ namespace Ticker
             {
                 var sellPrice = sell.bid;
                 var buyPrice = buy.ask;
-                var price = (sellPrice - buyPrice) / 2;
+                var price = sellPrice - buyPrice;
                 if (price * 100 * LotSize > CallThreshold)
                 {
                     sellStrikePrice = sell.strike;
@@ -141,7 +186,7 @@ namespace Ticker
 
         private bool IsVolumeLow(dynamic sell, dynamic buy)
         {
-            return sell.volume < VolumeThreshold || buy.volume < VolumeThreshold;
+            return sell.openInterest < VolumeThreshold;
         }
 
         public bool IsPutOptionWorthIt(decimal currentPrice, Put buy, Put sell, out decimal sellStrikePrice, out decimal buyStrikePrice, out decimal takeInMoney)
@@ -163,7 +208,7 @@ namespace Ticker
             {
                 var sellPrice = sell.bid;
                 var buyPrice = buy.ask;
-                var price = (sellPrice - buyPrice) / 2;
+                var price = sellPrice - buyPrice;
                 if (price * 100 * LotSize > PutThreshold)
                 {
                     sellStrikePrice = sell.strike;
