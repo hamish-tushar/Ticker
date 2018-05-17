@@ -18,7 +18,7 @@ namespace Ticker
     {
         public string underlyingSymbol { get; set; }
         public int[] expirationDates { get; set; }
-        public float[] strikes { get; set; }
+        public decimal[] strikes { get; set; }
         public bool hasMiniOptions { get; set; }
         public Quote quote { get; set; }
         public Option[] options { get; set; }
@@ -30,8 +30,8 @@ namespace Ticker
         public string quoteType { get; set; }
         public string quoteSourceName { get; set; }
         public string currency { get; set; }
-        public float twoHundredDayAverageChange { get; set; }
-        public float twoHundredDayAverageChangePercent { get; set; }
+        public decimal twoHundredDayAverageChange { get; set; }
+        public decimal twoHundredDayAverageChangePercent { get; set; }
         public long marketCap { get; set; }
         public int sourceInterval { get; set; }
         public string exchangeTimezoneName { get; set; }
@@ -40,44 +40,44 @@ namespace Ticker
         public bool esgPopulated { get; set; }
         public bool tradeable { get; set; }
         public long sharesOutstanding { get; set; }
-        public float fiftyDayAverage { get; set; }
-        public float fiftyDayAverageChange { get; set; }
-        public float fiftyDayAverageChangePercent { get; set; }
-        public float twoHundredDayAverage { get; set; }
+        public decimal fiftyDayAverage { get; set; }
+        public decimal fiftyDayAverageChange { get; set; }
+        public decimal fiftyDayAverageChangePercent { get; set; }
+        public decimal twoHundredDayAverage { get; set; }
         public string marketState { get; set; }
-        public float regularMarketPrice { get; set; }
+        public decimal regularMarketPrice { get; set; }
         public int regularMarketTime { get; set; }
-        public float regularMarketChange { get; set; }
-        public float regularMarketOpen { get; set; }
-        public float regularMarketDayHigh { get; set; }
-        public float regularMarketDayLow { get; set; }
+        public decimal regularMarketChange { get; set; }
+        public decimal regularMarketOpen { get; set; }
+        public decimal regularMarketDayHigh { get; set; }
+        public decimal regularMarketDayLow { get; set; }
         public int regularMarketVolume { get; set; }
         public string fullExchangeName { get; set; }
         public string longName { get; set; }
         public string financialCurrency { get; set; }
         public int averageDailyVolume3Month { get; set; }
         public int averageDailyVolume10Day { get; set; }
-        public float fiftyTwoWeekLowChange { get; set; }
-        public float fiftyTwoWeekLowChangePercent { get; set; }
+        public decimal fiftyTwoWeekLowChange { get; set; }
+        public decimal fiftyTwoWeekLowChangePercent { get; set; }
         public string fiftyTwoWeekRange { get; set; }
-        public float fiftyTwoWeekHighChange { get; set; }
-        public float fiftyTwoWeekHighChangePercent { get; set; }
-        public float fiftyTwoWeekLow { get; set; }
-        public float fiftyTwoWeekHigh { get; set; }
-        public float ytdReturn { get; set; }
-        public float trailingThreeMonthReturns { get; set; }
-        public float trailingThreeMonthNavReturns { get; set; }
+        public decimal fiftyTwoWeekHighChange { get; set; }
+        public decimal fiftyTwoWeekHighChangePercent { get; set; }
+        public decimal fiftyTwoWeekLow { get; set; }
+        public decimal fiftyTwoWeekHigh { get; set; }
+        public decimal ytdReturn { get; set; }
+        public decimal trailingThreeMonthReturns { get; set; }
+        public decimal trailingThreeMonthNavReturns { get; set; }
         public int exchangeDataDelayedBy { get; set; }
         public string shortName { get; set; }
-        public float postMarketChangePercent { get; set; }
+        public decimal postMarketChangePercent { get; set; }
         public int postMarketTime { get; set; }
-        public float postMarketPrice { get; set; }
-        public float postMarketChange { get; set; }
-        public float regularMarketChangePercent { get; set; }
+        public decimal postMarketPrice { get; set; }
+        public decimal postMarketChange { get; set; }
+        public decimal regularMarketChangePercent { get; set; }
         public string regularMarketDayRange { get; set; }
-        public float regularMarketPreviousClose { get; set; }
-        public float bid { get; set; }
-        public float ask { get; set; }
+        public decimal regularMarketPreviousClose { get; set; }
+        public decimal bid { get; set; }
+        public decimal ask { get; set; }
         public int bidSize { get; set; }
         public int askSize { get; set; }
         public string messageBoardId { get; set; }
@@ -98,38 +98,38 @@ namespace Ticker
     public class Call
     {
         public string contractSymbol { get; set; }
-        public float strike { get; set; }
+        public decimal strike { get; set; }
         public string currency { get; set; }
-        public float lastPrice { get; set; }
-        public float change { get; set; }
-        public float percentChange { get; set; }
+        public decimal lastPrice { get; set; }
+        public decimal change { get; set; }
+        public decimal percentChange { get; set; }
         public int volume { get; set; }
         public int openInterest { get; set; }
-        public float bid { get; set; }
-        public float ask { get; set; }
+        public decimal bid { get; set; }
+        public decimal ask { get; set; }
         public string contractSize { get; set; }
         public int expiration { get; set; }
         public int lastTradeDate { get; set; }
-        public float impliedVolatility { get; set; }
+        public decimal impliedVolatility { get; set; }
         public bool inTheMoney { get; set; }
     }
 
     public class Put
     {
         public string contractSymbol { get; set; }
-        public float strike { get; set; }
+        public decimal strike { get; set; }
         public string currency { get; set; }
-        public float lastPrice { get; set; }
-        public float change { get; set; }
-        public float percentChange { get; set; }
+        public decimal lastPrice { get; set; }
+        public decimal change { get; set; }
+        public decimal percentChange { get; set; }
         public int volume { get; set; }
         public int openInterest { get; set; }
-        public float bid { get; set; }
-        public float ask { get; set; }
+        public decimal bid { get; set; }
+        public decimal ask { get; set; }
         public string contractSize { get; set; }
         public int expiration { get; set; }
         public int lastTradeDate { get; set; }
-        public float impliedVolatility { get; set; }
+        public decimal impliedVolatility { get; set; }
         public bool inTheMoney { get; set; }
     }
 

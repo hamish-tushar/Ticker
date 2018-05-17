@@ -12,11 +12,11 @@ namespace Ticker
     internal class Stocks
     {
         private string url = ConfigurationManager.AppSettings["Url"];
-        public List<string> Symbols = ConfigurationManager.AppSettings["Symbols"].Split(',').ToList();
-        private double RiskValue => 1 + double.Parse(ConfigurationManager.AppSettings["RiskPercentage"]) * .01;
-        private int LotSize => int.Parse(ConfigurationManager.AppSettings["LotSize"]);
-        private int CallThreshold => int.Parse(ConfigurationManager.AppSettings["CallThreshold"]);
-        private int PutThreshold => int.Parse(ConfigurationManager.AppSettings["PutThreshold"]);
+        public List<string> Symbols = (Program.arguments.Symbol ?? ConfigurationManager.AppSettings["Symbols"]).Split(',').ToList();
+        private double RiskValue => 1 + (Program.arguments.RiskPercentage ?? double.Parse(ConfigurationManager.AppSettings["RiskPercentage"])) * .01;
+        private int LotSize => (Program.arguments.LotSize ?? int.Parse(ConfigurationManager.AppSettings["LotSize"]));
+        private int CallThreshold => Program.arguments.Profit ?? int.Parse(ConfigurationManager.AppSettings["CallThreshold"]);
+        private int PutThreshold => Program.arguments.Profit ?? int.Parse(ConfigurationManager.AppSettings["PutThreshold"]);
         private int VolumeThreshold => int.Parse(ConfigurationManager.AppSettings["VolumeThreshold"]);
         private readonly HttpClient client;
 
@@ -72,26 +72,36 @@ namespace Ticker
                 var responseString = await response.Content.ReadAsStringAsync();
                 var options = JsonConvert.DeserializeObject<Options>(responseString);
 
-                if (options.optionChain.error == null)
-                    for (int i =0; i < options.optionChain.result[0].options[0].calls.Length - 1; i+=2)
-                    {
-                        var sell = options.optionChain.result[0].options[0].calls[i];
-                        var buy = options.optionChain.result[0].options[0].calls[i + 1];
-                        if (IsCallOptionWorthIt(options.optionChain.result[0].quote.regularMarketPrice, sell, buy,
-                            out var sellStrikePrice, out var buyStrikePrice, out var takeInMoney))
-                        {
-                            Console.WriteLine($"Stock {options.optionChain.result[0].underlyingSymbol} {options.optionChain.result[0].quote.regularMarketPrice} has potential for ${takeInMoney} strike Price Calls {sellStrikePrice}/{buyStrikePrice} and Expiry {DateTimeOffset.FromUnixTimeSeconds(sell.expiration).LocalDateTime} ");
-                        }
-                    }
-
-                for (int i = 0; i < options.optionChain.result[0].options[0].puts.Length - 1; i += 2)
+                if (options.optionChain.error != null)
                 {
-                    var buy = options.optionChain.result[0].options[0].puts[i];
-                    var sell = options.optionChain.result[0].options[0].puts[i + 1];
-                    if (IsPutOptionWorthIt(options.optionChain.result[0].quote.regularMarketPrice, buy, sell,
-                        out var sellStrikePrice, out var buyStrikePrice, out var takeInMoney))
+                    return null;
+                }
+
+                var result = options.optionChain.result[0];
+
+                var calls = result.options[0].calls;
+                for (int i = 0; i < calls.Length - 1; i += 2)
+                {
+                    var sell = calls[i];
+                    var buy = calls[i + 1];
+
+                    if (IsCallOptionWorthIt(result.quote.regularMarketPrice, sell, buy, out var sellStrikePrice, out var buyStrikePrice, out var takeInMoney))
                     {
-                        Console.WriteLine($"Stock {options.optionChain.result[0].underlyingSymbol} {options.optionChain.result[0].quote.regularMarketPrice} has potential for ${takeInMoney} strike Price Puts {buyStrikePrice}/{sellStrikePrice} and Expiry {DateTimeOffset.FromUnixTimeSeconds(sell.expiration).LocalDateTime} ");
+                        Console.WriteLine(
+                            $"{result.underlyingSymbol} {result.quote.regularMarketPrice} has potential for {takeInMoney.ToCurrencyString()} calls {sellStrikePrice}/{buyStrikePrice} and Expiry {DateTimeOffset.FromUnixTimeSeconds(sell.expiration).LocalDateTime.ToShortDateString()} ");
+                    }
+                }
+
+
+                var puts = result.options[0].puts;
+                for (int i = 0; i < puts.Length - 1; i += 2)
+                {
+                    var buy = puts[i];
+                    var sell = puts[i + 1];
+                    if (IsPutOptionWorthIt(result.quote.regularMarketPrice, buy, sell, out var sellStrikePrice, out var buyStrikePrice, out var takeInMoney))
+                    {
+                        Console.WriteLine(
+                            $"{result.underlyingSymbol} {result.quote.regularMarketPrice} has potential for {takeInMoney.ToCurrencyString()} puts {sellStrikePrice}/{buyStrikePrice} and Expiry {DateTimeOffset.FromUnixTimeSeconds(sell.expiration).LocalDateTime.ToShortDateString()} ");
                     }
                 }
 
@@ -100,7 +110,7 @@ namespace Ticker
         }
 
 
-        public bool IsCallOptionWorthIt(double currentPrice, Call sell, Call buy, out float sellStrikePrice, out float buyStrikePrice, out double takeInMoney)
+        public bool IsCallOptionWorthIt(decimal currentPrice, Call sell, Call buy, out decimal sellStrikePrice, out decimal buyStrikePrice, out decimal takeInMoney)
         {
             sellStrikePrice = 0;
             buyStrikePrice = 0;
@@ -113,7 +123,7 @@ namespace Ticker
             {
                 return false;
             }
-            if (sell.strike > currentPrice * RiskValue)
+            if (sell.strike > currentPrice * (decimal)RiskValue)
             {
                 var sellPrice = sell.bid;
                 var buyPrice = buy.ask;
@@ -134,7 +144,7 @@ namespace Ticker
             return sell.volume < VolumeThreshold || buy.volume < VolumeThreshold;
         }
 
-        public bool IsPutOptionWorthIt(double currentPrice, Put buy, Put sell, out float sellStrikePrice, out float buyStrikePrice, out double takeInMoney)
+        public bool IsPutOptionWorthIt(decimal currentPrice, Put buy, Put sell, out decimal sellStrikePrice, out decimal buyStrikePrice, out decimal takeInMoney)
         {
             sellStrikePrice = 0;
             buyStrikePrice = 0;
@@ -149,7 +159,7 @@ namespace Ticker
                 return false;
             }
 
-            if (sell.strike < currentPrice / RiskValue)
+            if (sell.strike < currentPrice / (decimal)RiskValue)
             {
                 var sellPrice = sell.bid;
                 var buyPrice = buy.ask;
