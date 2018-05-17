@@ -2,9 +2,9 @@
 {
     public static class Extensions
     {
-        public static string ToCurrencyString(this decimal d)
+        public static string ToCurrencyString(this decimal d, bool noPrecision = true)
         {
-            return d.ToString("c");
+            return d.ToString(noPrecision ? "c0" : "c");
         }
 
         public static decimal ToDecimalTotal(this int d)

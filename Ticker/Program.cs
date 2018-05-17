@@ -43,17 +43,12 @@ namespace Ticker
             }
             
             var stocks = new Stocks();
-            var time = stocks.GetExpiryForThirdFriday(DateTime.Now, 2);
+            var time1 = stocks.GetExpiryForThirdFriday(1);
+            var time2 = stocks.GetExpiryForThirdFriday(2);
             foreach (var symbol in stocks.Symbols)
             {
-                await stocks.GetStockPrice(symbol, time);
-            }
-
-            time = stocks.GetExpiryForThirdFriday(DateTime.Now, 1);
-
-            foreach (var symbol in stocks.Symbols)
-            {
-                await stocks.GetStockPrice(symbol, time);
+                await stocks.GetStockPrice(symbol, time1);
+                await stocks.GetStockPrice(symbol, time2);
             }
         }
     }

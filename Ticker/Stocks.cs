@@ -31,38 +31,16 @@ namespace Ticker
         /// Even though it says third friday, yahoo API works with date expiry for Fri 12:00 am UTC
         /// Translates to Thursday 5pm PST
         /// </summary>
-        /// <param name="dateTime"></param>
-        /// <param name="futureMonth"></param>
         /// <returns></returns>
-        public long GetExpiryForThirdFriday(DateTime dateTime, int futureMonth = 1)
+        public long GetExpiryForThirdFriday(int futureMonth = 1)
         {
-            var now = DateTime.Now;
-            var expiryYear = now.Year;
-            switch (futureMonth)
-            {
-                case 1:
-                    if (now.Month == 11)
-                    {
-                        expiryYear = now.Year + 1;
-                    }
-                    break;
-                case 2:
-                    if (now.Month == 10 || now.Year == 11)
-                    {
-                        expiryYear = now.Year + 1;
-                    }
-                    break;
-            }
-            
-            var thirdFriday = new DateTime(expiryYear, (now.Month + futureMonth) % 12, 1, 17, 0, 0);
-
-            while (thirdFriday.DayOfWeek != DayOfWeek.Thursday)
+            var now = DateTime.UtcNow;
+            DateTime thirdFriday = new DateTime(now.Year, now.Month, 15, 0, 0, 0, DateTimeKind.Utc).AddMonths(futureMonth);
+            while (thirdFriday.DayOfWeek != DayOfWeek.Friday)
             {
                 thirdFriday = thirdFriday.AddDays(1);
             }
-
-            thirdFriday = thirdFriday.AddDays(14);
-
+            
             return new DateTimeOffset(thirdFriday).ToUnixTimeSeconds();
         }
 
@@ -93,8 +71,7 @@ namespace Ticker
 
                     if (IsCallOptionWorthIt(result.quote.regularMarketPrice, sell, buy, out var sellStrikePrice, out var buyStrikePrice, out var takeInMoney))
                     {
-                        Console.WriteLine(
-                            $"{result.underlyingSymbol} {result.quote.regularMarketPrice} has potential for {takeInMoney.ToCurrencyString()} calls {sellStrikePrice}/{buyStrikePrice} and Expiry {DateTimeOffset.FromUnixTimeSeconds(sell.expiration).LocalDateTime.ToShortDateString()} ");
+                        Display(result.underlyingSymbol, result.quote.regularMarketPrice, takeInMoney, sellStrikePrice, buyStrikePrice, sell.expiration, true);
                     }
                 }
 
@@ -112,13 +89,17 @@ namespace Ticker
                     
                     if (IsPutOptionWorthIt(result.quote.regularMarketPrice, buy, sell, out var sellStrikePrice, out var buyStrikePrice, out var takeInMoney))
                     {
-                        Console.WriteLine(
-                            $"{result.underlyingSymbol} {result.quote.regularMarketPrice} has potential for {takeInMoney.ToCurrencyString()} puts {sellStrikePrice}/{buyStrikePrice} and Expiry {DateTimeOffset.FromUnixTimeSeconds(sell.expiration).LocalDateTime.ToShortDateString()} ");
+                        Display(result.underlyingSymbol, result.quote.regularMarketPrice, takeInMoney, sellStrikePrice, buyStrikePrice, sell.expiration, false);
                     }
                 }
 
             }
             return null;
+        }
+
+        private static void Display(string symbol, decimal regularMarketPrice, decimal takeInMoney, decimal sellStrikePrice, decimal buyStrikePrice, int expiration, bool isCall)
+        {
+            Console.WriteLine($"{symbol.PadRight(6)} {regularMarketPrice.ToString().PadRight(10)} profit {takeInMoney.ToCurrencyString().PadRight(7)} {(isCall ? "calls" : "puts")} {sellStrikePrice}/{buyStrikePrice} expiry {DateTimeOffset.FromUnixTimeSeconds(expiration).DateTime.ToShortDateString()}");
         }
 
         private Call FindBuyOption(Call[] calls, int i)
@@ -168,6 +149,13 @@ namespace Ticker
             {
                 return false;
             }
+
+            var marginRequired = Math.Abs(sell.strike - buy.strike) * LotSize * 100;
+            if (marginRequired > MaxMargin)
+            {
+                return false;
+            }
+
             if (sell.strike > currentPrice * (decimal)RiskValue)
             {
                 var sellPrice = sell.bid;
@@ -200,6 +188,12 @@ namespace Ticker
             }
 
             if (IsVolumeLow(sell, buy))
+            {
+                return false;
+            }
+
+            var marginRequired = Math.Abs(sell.strike - buy.strike) * LotSize * 100;
+            if (marginRequired > MaxMargin)
             {
                 return false;
             }
