@@ -99,7 +99,8 @@ namespace Ticker
 
         private static void Display(string symbol, decimal regularMarketPrice, decimal takeInMoney, decimal sellStrikePrice, decimal buyStrikePrice, int expiration, bool isCall)
         {
-            Console.WriteLine($"{symbol.PadRight(6)} {regularMarketPrice.ToString().PadRight(10)} profit {takeInMoney.ToCurrencyString().PadRight(7)} {(isCall ? "calls" : "puts")} {sellStrikePrice}/{buyStrikePrice} expiry {DateTimeOffset.FromUnixTimeSeconds(expiration).DateTime.ToShortDateString()}");
+            var expiry = DateTimeOffset.FromUnixTimeSeconds(expiration).DateTime;
+            Console.WriteLine($"{symbol.PadRight(6)} {regularMarketPrice.ToString().PadRight(10)} profit {takeInMoney.ToCurrencyString().PadRight(7)} {(isCall ? "calls" : "puts")} {sellStrikePrice}/{buyStrikePrice} expiry {expiry.Subtract(DateTime.UtcNow).Days} days {expiry.ToShortDateString()}");
         }
 
         private Call FindBuyOption(Call[] calls, int i)
