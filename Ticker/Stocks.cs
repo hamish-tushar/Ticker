@@ -13,7 +13,7 @@ namespace Ticker
     {
         private string url = ConfigurationManager.AppSettings["Url"];
         public List<string> Symbols = (Program.arguments.Symbol ?? ConfigurationManager.AppSettings["Symbols"]).Split(',').ToList();
-        private double RiskValue => 1 + (Program.arguments.RiskPercentage ?? double.Parse(ConfigurationManager.AppSettings["RiskPercentage"])) * .01;
+        private double RiskPercentage => (Program.arguments.RiskPercentage ?? double.Parse(ConfigurationManager.AppSettings["RiskPercentage"])) * .01;
         private int LotSize => (Program.arguments.LotSize ?? int.Parse(ConfigurationManager.AppSettings["LotSize"]));
         private int CallThreshold => Program.arguments.Profit ?? int.Parse(ConfigurationManager.AppSettings["CallThreshold"]);
         private int PutThreshold => Program.arguments.Profit ?? int.Parse(ConfigurationManager.AppSettings["PutThreshold"]);
@@ -25,6 +25,9 @@ namespace Ticker
         public Stocks()
         {
             client = new HttpClient();
+            Console.WriteLine(string.Empty);
+            Console.WriteLine($"Margin {MaxMargin.ToCurrencyString()} Lots {LotSize} Risk percentage {(RiskPercentage * 100)}% Call profit ${CallThreshold} Put profit ${PutThreshold}");
+            Console.WriteLine(string.Empty);
         }
 
         /// <summary>
@@ -46,7 +49,12 @@ namespace Ticker
 
         public async Task<string> GetStockPrice(string symbol, long expiry)
         {
-            var response = await client.GetAsync(string.Format(url, symbol, expiry));
+            var fullUrl = string.Format(url, symbol, expiry);
+            if (Program.arguments.Debug)
+            {
+                Console.WriteLine(fullUrl);
+            }
+            var response = await client.GetAsync(fullUrl);
             if (response.IsSuccessStatusCode)
             {
                 var responseString = await response.Content.ReadAsStringAsync();
@@ -59,7 +67,7 @@ namespace Ticker
 
                 var result = options.optionChain.result[0];
 
-                var calls = result.options[0].calls;
+                var calls = result.options[0].calls.OrderBy(c => c.strike).ToArray();
                 for (int i = 0; i < calls.Length - 1; i ++)
                 {
                     var sell = calls[i];
@@ -76,7 +84,7 @@ namespace Ticker
                 }
 
 
-                var puts = result.options[0].puts;
+                var puts = result.options[0].puts.OrderBy(p => p.strike).ToArray();
                 for (int i = puts.Length - 1; i > 0; i--)
                 {
                     var sell = puts[i];
@@ -157,7 +165,7 @@ namespace Ticker
                 return false;
             }
 
-            if (sell.strike > currentPrice * (decimal)RiskValue)
+            if (sell.strike > currentPrice * (1 + (decimal)RiskPercentage))
             {
                 var sellPrice = sell.bid;
                 var buyPrice = buy.ask;
@@ -199,7 +207,7 @@ namespace Ticker
                 return false;
             }
 
-            if (sell.strike < currentPrice / (decimal)RiskValue)
+            if (sell.strike < currentPrice / (1 + (decimal)RiskPercentage))
             {
                 var sellPrice = sell.bid;
                 var buyPrice = buy.ask;
