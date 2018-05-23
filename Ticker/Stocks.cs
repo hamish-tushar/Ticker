@@ -18,6 +18,7 @@ namespace Ticker
         private int CallThreshold => Program.arguments.Profit ?? int.Parse(ConfigurationManager.AppSettings["CallThreshold"]);
         private int PutThreshold => Program.arguments.Profit ?? int.Parse(ConfigurationManager.AppSettings["PutThreshold"]);
         private int VolumeThreshold => int.Parse(ConfigurationManager.AppSettings["VolumeThreshold"]);
+        private int BidAskThreshold => int.Parse(ConfigurationManager.AppSettings["BidAskThreshold"]);
         private decimal MaxMargin => Program.arguments.Margin ?? decimal.Parse(ConfigurationManager.AppSettings["MaxMargin"]);
 
         private readonly HttpClient client;
@@ -183,9 +184,19 @@ namespace Ticker
             return false;
         }
 
-        private bool IsVolumeLow(dynamic sell, dynamic buy)
+        private bool IsVolumeLow(IOption sell, dynamic buy)
         {
-            return sell.openInterest < VolumeThreshold;
+            return sell.ask == 0  || buy.ask == 0 || sell.openInterest < VolumeThreshold || IsBidAskSpreadRatioToHigh(sell);
+        }
+
+        private bool IsBidAskSpreadRatioToHigh(IOption option)
+        {
+            return BidAskRatio(option) > BidAskThreshold;
+        }
+
+        private static decimal BidAskRatio(IOption option)
+        {
+            return (option.ask - option.bid) / option.ask * 100;
         }
 
         public bool IsPutOptionWorthIt(decimal currentPrice, Put buy, Put sell, out decimal sellStrikePrice, out decimal buyStrikePrice, out decimal takeInMoney)

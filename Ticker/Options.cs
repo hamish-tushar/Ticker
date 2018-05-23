@@ -95,7 +95,7 @@ namespace Ticker
         public Put[] puts { get; set; }
     }
 
-    public class Call
+    public class Call : IOption
     {
         public string contractSymbol { get; set; }
         public decimal strike { get; set; }
@@ -114,7 +114,25 @@ namespace Ticker
         public bool inTheMoney { get; set; }
     }
 
-    public class Put
+    public interface IOption {
+        string contractSymbol { get; set; }
+        decimal strike { get; set; }
+        string currency { get; set; }
+        decimal lastPrice { get; set; }
+        decimal change { get; set; }
+        decimal percentChange { get; set; }
+        int volume { get; set; }
+        int openInterest { get; set; }
+        decimal bid { get; set; }
+        decimal ask { get; set; }
+        string contractSize { get; set; }
+        int expiration { get; set; }
+        int lastTradeDate { get; set; }
+        decimal impliedVolatility { get; set; }
+        bool inTheMoney { get; set; }
+    }
+
+    public class Put : IOption
     {
         public string contractSymbol { get; set; }
         public decimal strike { get; set; }
